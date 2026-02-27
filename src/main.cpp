@@ -31,9 +31,6 @@ void on_center_button() {
  * to keep execution time for this mode under a few seconds.
  */
 
- // -------------------------------
- // PID CONTROLLER SETUP
- // -------------------------------
 struct PID{
 	double Kp, Ki, Kd;
 	double integral = 0;
@@ -98,7 +95,41 @@ void competition_initialize() {}
  * will be stopped. Re-enabling the robot will restart the task, not re-start it
  * from where it left off.
  */
-void autonomous() {}
+void autonomous() {
+
+	pros::MotorGroup left_motors({-3, 11, -12});
+	pros::MotorGroup right_motors({15, -16, 17});
+	pros::Rotation forwardOdom(4);
+
+	
+	const double target = 500.0;  
+	PID drivePid(0.4, 0.02, 0.02); 
+	drivePid.reset();
+
+	while (true) {
+		double now = pros::millis() / 1000.0;
+		double current = forwardOdom.get_position();
+		double out = drivePid.update(target, current, now);
+
+		
+		left_motors.move((int)out);
+		right_motors.move((int)out);
+
+		
+		pros::lcd::print(2, "Err: %.1f cur: %.0f", drivePid.lastError, current);
+		pros::lcd::print(3, "out: %.0f", out);
+
+		
+		if (fabs(drivePid.lastError) < 5.0) {
+			left_motors.move(0);
+			right_motors.move(0);
+			pros::lcd::print(4, "Done");
+			break;
+		}
+
+		pros::delay(20);
+	}
+}
 
 /**
  * Runs the operator control code. This function will be started in its own task
