@@ -96,34 +96,35 @@ void competition_initialize() {}
  * from where it left off.
  */
 void autonomous() {
+	// 直行 3 米：目标用编码器度数表示（需按你的轮子直径校准）
+	const double DEGREES_PER_METER = 1600.0;  // 约 2.75" 测轮：1米≈1600度，按实车调
+	const double TARGET_DEGREES = 3.0 * DEGREES_PER_METER;  // 3 米
 
 	pros::MotorGroup left_motors({-3, 11, -12});
 	pros::MotorGroup right_motors({15, -16, 17});
 	pros::Rotation forwardOdom(4);
-
-	
-	const double target = 500.0;  
-	PID drivePid(0.4, 0.02, 0.02); 
+	PID drivePid(0.4, 0.02, 0.02);
 	drivePid.reset();
+
+	pros::lcd::clear();
+	pros::lcd::set_text(0, "Auto: 3m straight");
 
 	while (true) {
 		double now = pros::millis() / 1000.0;
 		double current = forwardOdom.get_position();
-		double out = drivePid.update(target, current, now);
+		double out = drivePid.update(TARGET_DEGREES, current, now);
 
-		
 		left_motors.move((int)out);
 		right_motors.move((int)out);
 
-		
-		pros::lcd::print(2, "Err: %.1f cur: %.0f", drivePid.lastError, current);
-		pros::lcd::print(3, "out: %.0f", out);
+		// LCD：目标、当前、误差、输出
+		pros::lcd::print(1, "target: %.0f  cur: %.0f", TARGET_DEGREES, current);
+		pros::lcd::print(2, "err: %.1f  out: %.0f", drivePid.lastError, out);
 
-		
 		if (fabs(drivePid.lastError) < 5.0) {
 			left_motors.move(0);
 			right_motors.move(0);
-			pros::lcd::print(4, "Done");
+			pros::lcd::set_text(3, "Done");
 			break;
 		}
 
