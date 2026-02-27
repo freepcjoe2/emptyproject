@@ -86,15 +86,15 @@ void opcontrol() {
 	// -------------------------------
 	// DRIVE MOTOR GROUPS
 	// -------------------------------
-	pros::MotorGroup left_motors({-3, 11, -12});
-	pros::MotorGroup right_motors({15,-16, 17});
-	pros::MotorGroup drivetrain({3, -11, 12, 15, -16, 17});
+	pros::MotorGroup left_motors({-3, 11, -12});//left drive motors
+	pros::MotorGroup right_motors({15,-16, 17});//right drive motors
+	pros::MotorGroup drivetrain({3, -11, 12, 15, -16, 17});//is this meanful?
 	// -------------------------------
 	// MECHANISM MOTORS
 	// -------------------------------
-	pros::Motor motorIntake(18);
-	pros::Motor motorArm(20);
-	pros::Motor wing(14);
+	pros::Motor motorIntake(18);// Not installed yet
+	pros::Motor motorpush(20);// Arm/push motor
+	pros::Motor wing(14);// Wing for expansion
 	// -------------------------------
 	// ODOMETRY SENSORS
 	// -------------------------------
@@ -106,6 +106,17 @@ void opcontrol() {
 		int right_move_control = master.get_analog(ANALOG_RIGHT_Y);  // Gets the turn left/right from right joystick
 		left_motors.move(Left_move_control);                      // Sets left motor voltage
 		right_motors.move(right_move_control);                     // Sets right motor voltage
+		bool push_up = master.get_digital(pros::E_CONTROLLER_DIGITAL_L1); // Gets whether L1 is pressed for pushing up the arm
+		bool push_down = master.get_digital(pros::E_CONTROLLER_DIGITAL_L2);
+
+		if (push_up) {
+			motorpush.move(127); // Moves the arm up at full speed
+		} else if (push_down) {
+			motorpush.move(-127); // Moves the arm down at full speed
+		} else {
+			motorpush.move(0); // Stops the arm if neither button is pressed
+		}
+		
 
 		pros::lcd::print(2, "Left: %d Right: %d ",Left_move_control, right_move_control);// Prints the joystick values to the LCD for debugging purposes
 
