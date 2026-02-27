@@ -95,7 +95,6 @@ void opcontrol() {
 	pros::Motor motorIntake(18);// Not installed yet
 	pros::Motor motorpush(20);// Arm/push motor
 	pros::Motor wing(14);// Wing for expansion
-	bool wing_open = false;
 	// -------------------------------
 	// ODOMETRY SENSORS
 	// -------------------------------
@@ -111,11 +110,11 @@ void opcontrol() {
 		bool push_up = master.get_digital(pros::E_CONTROLLER_DIGITAL_L1); // Gets whether L1 is pressed for pushing up the arm
 		bool push_down = master.get_digital(pros::E_CONTROLLER_DIGITAL_L2);
 		if(master.get_digital(pros::E_CONTROLLER_DIGITAL_R2)) { // Checks if R2 is pressed for opening the wings
-			wing_open = true;
-			wing.move(10); // Moves the wing open at full speed
+			wing.move(48); // Moves the wing open at full speed
 		} else if(master.get_digital(pros::E_CONTROLLER_DIGITAL_R1)) { // Checks if R1 is pressed for closing the wings
-			wing_open = false;
-			wing.move(-10); // Moves the wing closed at full speed
+			wing.move(-48); // Moves the wing closed at full speed
+		}else {
+			wing.move(0); // Stops the wing if neither button is pressed
 		}
 		
 
