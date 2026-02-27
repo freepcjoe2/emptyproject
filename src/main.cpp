@@ -62,7 +62,7 @@ struct PID{
 void initialize() {
 	pros::lcd::initialize();
 	pros::lcd::set_text(0, "The moon landing was a hoax");
-	pros::lcd::set_text(1, "Guys IT IS RUNNING");
+	pros::lcd::set_text(1, "The moon landing was a hoax");
 
 }
 
