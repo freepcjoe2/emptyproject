@@ -109,6 +109,6 @@ void opcontrol() {
 
 		pros::lcd::print(2, "Left: %d Right: %d ",Left_move_control, right_move_control);// Prints the joystick values to the LCD for debugging purposes
 
-		pros::delay(4);                               // Run for 4 ms then update
+		pros::delay(20);                               // Run for 20 ms then update
 	}
 }
