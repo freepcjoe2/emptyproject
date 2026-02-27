@@ -95,6 +95,7 @@ void opcontrol() {
 	pros::Motor motorIntake(18);// Not installed yet
 	pros::Motor motorpush(20);// Arm/push motor
 	pros::Motor wing(14);// Wing for expansion
+	bool wing_open = false;
 	// -------------------------------
 	// ODOMETRY SENSORS
 	// -------------------------------
@@ -104,21 +105,32 @@ void opcontrol() {
 	while (true) {
 		int Left_move_control = master.get_analog(ANALOG_LEFT_Y);    // Gets amount forward/backward from left joystick
 		int right_move_control = master.get_analog(ANALOG_RIGHT_Y);  // Gets the turn left/right from right joystick
+
 		left_motors.move(Left_move_control);                      // Sets left motor voltage
 		right_motors.move(right_move_control);                     // Sets right motor voltage
 		bool push_up = master.get_digital(pros::E_CONTROLLER_DIGITAL_L1); // Gets whether L1 is pressed for pushing up the arm
 		bool push_down = master.get_digital(pros::E_CONTROLLER_DIGITAL_L2);
+		if(master.get_digital(pros::E_CONTROLLER_DIGITAL_R2)) { // Checks if R2 is pressed for opening the wings
+			wing_open = true;
+			wing.move(10); // Moves the wing open at full speed
+		} else if(master.get_digital(pros::E_CONTROLLER_DIGITAL_R1)) { // Checks if R1 is pressed for closing the wings
+			wing_open = false;
+			wing.move(-10); // Moves the wing closed at full speed
+		}
+		
+
+		int wing_angle = wing.get_position(); // Gets the current angle of the wing for debugging purposes
 
 		if (push_up) {
-			motorpush.move(127); // Moves the arm up at full speed
+			motorpush.move(-127); // Moves the arm up at full speed
 		} else if (push_down) {
-			motorpush.move(-127); // Moves the arm down at full speed
+			motorpush.move(64); // Moves the arm down at half speed
 		} else {
 			motorpush.move(0); // Stops the arm if neither button is pressed
 		}
 		
-
 		pros::lcd::print(2, "Left: %d Right: %d ",Left_move_control, right_move_control);// Prints the joystick values to the LCD for debugging purposes
+		pros::lcd::print(3, "Wing Angle: %d", wing_angle); // Prints the current angle of the wing to the LCD for debugging purposes
 
 		pros::delay(20);                               // Run for 20 ms then update
 	}
