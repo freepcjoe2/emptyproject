@@ -32,6 +32,7 @@ void on_center_button() {
  */
 void initialize() {
 	pros::lcd::initialize();
+	pros::lcd::set_text(0, "Code Version: 26.3.27.1");
 	pros::lcd::set_text(1, "Guys IT IS RUNNING");
 
 }
@@ -101,15 +102,13 @@ void opcontrol() {
 	pros::Imu imu(6);                // IMU
 
 	while (true) {
-		pros::lcd::print(0, "%d %d %d", (pros::lcd::read_buttons() & LCD_BTN_LEFT) >> 2,
-		                 (pros::lcd::read_buttons() & LCD_BTN_CENTER) >> 1,
-		                 (pros::lcd::read_buttons() & LCD_BTN_RIGHT) >> 0);  // Prints status of the emulated screen LCDs
-
-		// Arcade control scheme
 		int Left_move_control = master.get_analog(ANALOG_LEFT_Y);    // Gets amount forward/backward from left joystick
 		int right_move_control = master.get_analog(ANALOG_RIGHT_Y);  // Gets the turn left/right from right joystick
 		left_motors.move(Left_move_control);                      // Sets left motor voltage
 		right_motors.move(right_move_control);                     // Sets right motor voltage
+
+		pros::lcd::print(2, "Left: %d Right: %d ",Left_move_control, right_move_control);// Prints the joystick values to the LCD for debugging purposes
+
 		pros::delay(4);                               // Run for 4 ms then update
 	}
 }
