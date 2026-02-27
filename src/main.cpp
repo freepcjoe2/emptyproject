@@ -30,9 +30,41 @@ void on_center_button() {
  * All other competition modes are blocked by initialize; it is recommended
  * to keep execution time for this mode under a few seconds.
  */
+
+ // -------------------------------
+ // PID CONTROLLER SETUP
+ // -------------------------------
+struct PID{
+	double Kp, Ki, Kd;
+	double integral = 0;
+	double lastError = 0;
+	double lastTime = 0;
+	bool started = false;
+
+	PID(double kp, double ki, double kd) : Kp(kp), Ki(ki), Kd(kd) {}
+
+    double update(double target, double current, double now) {
+        double error = target - current;
+        double dt = now - lastTime;
+        if (dt <= 0) dt = 0.02;	// 20ms
+        if (!started) { started = true; lastTime = now; lastError = error; return Kp * error; }
+
+      integral += error * dt;
+        double derivative = (error - lastError) / dt;
+
+        lastError = error;
+        lastTime = now;
+
+        double out = Kp * error + Ki * integral + Kd * derivative;
+        return out;  // clamp to motor range, -127~127
+    }
+
+	void reset() { integral = 0; lastError = 0; started = false; }
+};
+
 void initialize() {
 	pros::lcd::initialize();
-	pros::lcd::set_text(0, "Code Version: 26.3.27.1");
+	pros::lcd::set_text(0, "The moon landing was a hoax");
 	pros::lcd::set_text(1, "Guys IT IS RUNNING");
 
 }
@@ -112,3 +144,5 @@ void opcontrol() {
 		pros::delay(20);                               // Run for 20 ms then update
 	}
 }
+
+
