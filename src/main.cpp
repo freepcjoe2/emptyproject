@@ -106,7 +106,7 @@ void opcontrol() {
 		int right_move_control = master.get_analog(ANALOG_RIGHT_Y);  // Gets the turn left/right from right joystick
 
 		left_motors.move(Left_move_control);                      // Sets left motor voltage
-		right_motors.move(right_move_control);                     // Sets right motor voltage
+		right_motors.move(right_move_control*0.8);                     // Sets right motor voltage
 		bool push_up = master.get_digital(pros::E_CONTROLLER_DIGITAL_L1); // Gets whether L1 is pressed for pushing up the arm
 		bool push_down = master.get_digital(pros::E_CONTROLLER_DIGITAL_L2);
 		if(master.get_digital(pros::E_CONTROLLER_DIGITAL_R2)) { // Checks if R2 is pressed for opening the wings
