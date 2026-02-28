@@ -13,15 +13,16 @@ rebuild of [OrbweaversProsCodeLatest-2](https://github.com/Lorentzsam/Orbweavers
     - [x] computer #3
 - [x] Fix Driving
     - [x] Motors are good
-    - [ ] Code can't ruuun
-    - [ ] Is controller connected and can output joystick status
-    - [ ] Initialization fail?
-    - [ ] The screen fuctions
-    - [ ] More problems
-    - [x]rebuild
-- [ ] Add the new motors for orb inputing
+    - [X] Code can't ruuun
+    - [X] Is controller connected and can output joystick status
+    - [X] Initialization fail?
+    - [X] The screen fuctions
+    - [X] More problems
+    - [x] rebuild
+- [ ] Add the new motors for orb intaking
     - Wait They have not installed it 
 - [ ] Try moving on its own
+    - [x] At least it can move.
     - [ ] PID function
     - [ ] timed run routine
     - [ ] Geometric position get
@@ -32,10 +33,7 @@ rebuild of [OrbweaversProsCodeLatest-2](https://github.com/Lorentzsam/Orbweavers
 
 ## Debugging
 In main.cpp:
-- [ ] line 421:
-    - There was something which can check if the controler is connected
-- [ ] line 534:
-    - I commented a line because an important varible was not defined.
+    - [ ] Nothing need to debug
 ## Compiling
 - fuck microsoft
 - It nuked my compile toolchain
