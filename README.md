@@ -35,6 +35,10 @@ rebuild of [OrbweaversProsCodeLatest-2](https://github.com/Lorentzsam/Orbweavers
     - [ ] position
     - [x] controller
     - [ ] more!
+- [ ] To make auton run useable:
+    1. [ ] Get data from the motor
+    2. [ ] Use the data to write the code
+    3. [ ] Make specific routes for the car
 
 ## Debugging
 In main.cpp

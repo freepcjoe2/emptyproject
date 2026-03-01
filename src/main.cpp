@@ -24,12 +24,6 @@ void on_center_button() {
 	}
 }
 */
-/**
- * Runs initialization code. This occurs as soon as the program is started.
- *
- * All other competition modes are blocked by initialize; it is recommended
- * to keep execution time for this mode under a few seconds.
- */
 
 struct PID{
 	double Kp, Ki, Kd;
@@ -58,11 +52,21 @@ struct PID{
 
 	void reset() { integral = 0; lastError = 0; started = false; }
 };
+//sam can you explain how it works 
+//I want to apply it to the wing and arm
+
+
+/**
+ * Runs initialization code. This occurs as soon as the program is started.
+ *
+ * All other competition modes are blocked by initialize; it is recommended
+ * to keep execution time for this mode under a few seconds.
+ */
 
 void initialize() {
 	pros::lcd::initialize();
-	pros::lcd::set_text(0, "The moon landing was a hoax");
-	pros::lcd::set_text(1, "Guys IT IS RUNNING");
+	pros::lcd::set_text(0, "Version: 1.0.0");
+	pros::lcd::set_text(1, "Display during race:67");
 
 }
 
@@ -164,24 +168,27 @@ void opcontrol() {
 	pros::Rotation forwardOdom(4);   // tracking wheel
 	pros::Imu imu(6);                // IMU
 
+	//copy the initialization to where u use the motor or group
+
 	while (true) {
+
+		// -------------------------------
+		// DRIVE CONTROL
+		// -------------------------------
 		int Left_move_control = master.get_analog(ANALOG_LEFT_Y);    // Gets amount forward/backward from left joystick
 		int right_move_control = master.get_analog(ANALOG_RIGHT_Y);  // Gets the turn left/right from right joystick
 
 		left_motors.move(Left_move_control);                      // Sets left motor voltage
 		right_motors.move(right_move_control*0.8);                     // Sets right motor voltage
+
+		
+		// -------------------------------
+		// ARM/PUSH CONTROL
+		// -------------------------------
+
+		//renamed arm to push for better understanding, the name "push" is only used in this code and you can still calll it arm
 		bool push_up = master.get_digital(pros::E_CONTROLLER_DIGITAL_L1); // Gets whether L1 is pressed for pushing up the arm
 		bool push_down = master.get_digital(pros::E_CONTROLLER_DIGITAL_L2);
-		if(master.get_digital(pros::E_CONTROLLER_DIGITAL_R2)) { // Checks if R2 is pressed for opening the wings
-			wing.move(48); // Moves the wing open at full speed
-		} else if(master.get_digital(pros::E_CONTROLLER_DIGITAL_R1)) { // Checks if R1 is pressed for closing the wings
-			wing.move(-48); // Moves the wing closed at full speed
-		}else {
-			wing.move(0); // Stops the wing if neither button is pressed
-		}
-		
-
-		int wing_angle = wing.get_position(); // Gets the current angle of the wing for debugging purposes
 
 		if (push_up) {
 			motorpush.move(-127); // Moves the arm up at full speed
@@ -190,9 +197,33 @@ void opcontrol() {
 		} else {
 			motorpush.move(0); // Stops the arm if neither button is pressed
 		}
+
+
+
+		//-------------------------------
+		// WING CONTROL
+		//-------------------------------
+		if(master.get_digital(pros::E_CONTROLLER_DIGITAL_R2)) { // Checks if R2 is pressed for opening the wings
+			wing.move(48); // Moves the wing open at 3/8 speed
+		} else if(master.get_digital(pros::E_CONTROLLER_DIGITAL_R1)) { // Checks if R1 is pressed for closing the wings
+			wing.move(-48); // Moves the wing closed at 3/8 speed
+		}else {
+			wing.move(0); // Stops the wing if neither button is pressed
+		}
+		
+		int wing_angle = wing.get_position(); // Gets the current angle of the wing for debugging purposes
+
+		
+
 		
 		pros::lcd::print(2, "Left: %d Right: %d ",Left_move_control, right_move_control);// Prints the joystick values to the LCD for debugging purposes
 		pros::lcd::print(3, "Wing Angle: %d", wing_angle); // Prints the current angle of the wing to the LCD for debugging purposes
+
+
+
+
+
+
 
 		pros::delay(20);                               // Run for 20 ms then update
 	}
