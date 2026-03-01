@@ -20,7 +20,10 @@ rebuild of [OrbweaversProsCodeLatest-2](https://github.com/Lorentzsam/Orbweavers
     - [X] More problems
     - [x] rebuild
 - [ ] Add the new motors for orb intaking
-    - Wait They have not installed it 
+    - Wait They have not installed it
+- [ ] Controler adjust
+    - [ ] Button reset
+    - [ ] add a swich to the wing(PID also useful)
 - [ ] Try moving on its own
     - [x] At least it can move.
     - [ ] PID function
