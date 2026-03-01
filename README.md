@@ -42,7 +42,7 @@ rebuild of [OrbweaversProsCodeLatest-2](https://github.com/Lorentzsam/Orbweavers
 
 ## Debugging
 In main.cpp
-    - [ ] Nothing need to debug
+- [ ] Nothing need to debug
 ## Compiling
 - fuck microsoft
 - It nuked my compile toolchain
