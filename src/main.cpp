@@ -38,7 +38,12 @@ struct PID{
         double error = target - current;
         double dt = now - lastTime;
         if (dt <= 0) dt = 0.02;	// 20ms
-        if (!started) { started = true; lastTime = now; lastError = error; return Kp * error; }
+        if (!started) {
+            started = true;
+            lastTime = now;
+            lastError = error;
+            return std::clamp(Kp * error, -127.0, 127.0);
+        }
 
       integral += error * dt;
         double derivative = (error - lastError) / dt;
@@ -47,7 +52,7 @@ struct PID{
         lastTime = now;
 
         double out = Kp * error + Ki * integral + Kd * derivative;
-        return out;  // clamp to motor range, -127~127
+        return std::clamp(out, -127.0, 127.0);
     }
 
 	void reset() { integral = 0; lastError = 0; started = false; }
@@ -105,9 +110,12 @@ void autonomous() {
 	pros::MotorGroup left_motors({-3, 11, -14});
 	pros::MotorGroup right_motors({15, -16, 17});
 	pros::Rotation forwardOdom(4);
+	forwardOdom.reset_position();
 
 	
 	const double target = 500.0;  
+	const uint32_t MAX_AUTO_TIME_MS = 5000;
+	const uint32_t start_time = pros::millis();
 	PID drivePid(0.4, 0.02, 0.02); 
 	drivePid.reset();
 
@@ -128,6 +136,12 @@ void autonomous() {
 			left_motors.move(0);
 			right_motors.move(0);
 			pros::lcd::print(4, "Done");
+			break;
+		}
+		if (pros::millis() - start_time > MAX_AUTO_TIME_MS) {
+			left_motors.move(0);
+			right_motors.move(0);
+			pros::lcd::print(4, "Timeout");
 			break;
 		}
 
@@ -178,6 +192,9 @@ void opcontrol() {
 		// -------------------------------
 		int Left_move_control = master.get_analog(ANALOG_LEFT_Y);    // Gets amount forward/backward from left joystick
 		int right_move_control = master.get_analog(ANALOG_RIGHT_Y);  // Gets the turn left/right from right joystick
+		const int DEAD_BAND = 8;
+		if (std::abs(Left_move_control) < DEAD_BAND) Left_move_control = 0;
+		if (std::abs(right_move_control) < DEAD_BAND) right_move_control = 0;
 
 		left_motors.move(Left_move_control);                      // Sets left motor voltage
 		right_motors.move(right_move_control);                     // Sets right motor voltage
