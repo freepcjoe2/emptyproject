@@ -24,7 +24,10 @@ void on_center_button() {
 	}
 }
 */
-
+bool FUNCTION_AS_PREDICTED = true; // For testing weak function linking
+int ERROR_CODE = 0; // For testing weak function linking
+//CODE FOR TESTING WEAK FUNCTION LINKING
+//ERROR_CODE = 1; // Controller not connected
 struct PID{
 	double Kp, Ki, Kd;
 	double integral = 0;
@@ -119,7 +122,7 @@ void autonomous() {
 	PID drivePid(0.4, 0.02, 0.02); 
 	drivePid.reset();
 
-	while (true) {
+	while (FUNCTION_AS_PREDICTED) {
 		double now = pros::millis() / 1000.0;
 		double current = forwardOdom.get_position();
 		double out = drivePid.update(target, current, now);
@@ -164,6 +167,18 @@ void autonomous() {
  */
 void opcontrol() {
 	pros::Controller master(pros::E_CONTROLLER_MASTER);
+	if(!master.is_connected()) {
+		pros::Controller master(pros::E_CONTROLLER_PARTNER);
+		if(!master.is_connected()) {
+			pros::lcd::print(2, "No controller connected");
+			FUNCTION_AS_PREDICTED = false; // For testing weak function linking	
+			ERROR_CODE = 1; // Controller not connected
+
+	} else {
+		pros::lcd::print(2, "Controller connected to partner port");
+	}}else {
+		pros::lcd::print(2, "Controller connected to master port");
+	}
 	// -------------------------------
 	// DRIVE MOTOR GROUPS
 	// -------------------------------
@@ -185,13 +200,13 @@ void opcontrol() {
 
 	//copy the initialization to where u use the motor or group
 
-	while (true) {
+	while (FUNCTION_AS_PREDICTED) {
 
 		// -------------------------------
 		// DRIVE CONTROL
 		// -------------------------------
-		int Left_move_control = master.get_analog(ANALOG_LEFT_Y);    // Gets amount forward/backward from left joystick
-		int right_move_control = master.get_analog(ANALOG_RIGHT_Y);  // Gets the turn left/right from right joystick
+		int Left_move_control = master.get_analog(pros::E_CONTROLLER_ANALOG_LEFT_Y);    // Gets amount forward/backward from left joystick
+		int right_move_control = master.get_analog(pros::E_CONTROLLER_ANALOG_RIGHT_Y);  // Gets the turn left/right from right joystick
 		const int DEAD_BAND = 8;
 		if (std::abs(Left_move_control) < DEAD_BAND) Left_move_control = 0;
 		if (std::abs(right_move_control) < DEAD_BAND) right_move_control = 0;
@@ -216,12 +231,12 @@ void opcontrol() {
 			motorpush.move(0); // Stops the arm if neither button is pressed
 		}
 
-		if(pros::E_CONTROLLER_DIGITAL_A) { // Checks if A is pressed for moving the intake forward
-			intake.move(127); // Moves the intake forward at full speed
-		} else if (pros::E_CONTROLLER_DIGITAL_B) { // Checks if B is pressed for moving the intake in reverse
-			intake.move(-127); // Moves the intake in reverse at full speed
+		if(master.get_digital(pros::E_CONTROLLER_DIGITAL_A)) { // Checks if A is pressed for moving the intake forward
+			motorIntake.move(127); // Moves the intake forward at full speed
+		} else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_B)) { // Checks if B is pressed for moving the intake in reverse
+			motorIntake.move(-127); // Moves the intake in reverse at full speed
 		} else {
-			intake.move(0); // Stops the intake if neither button is pressed
+			motorIntake.move(0); // Stops the intake if neither button is pressed
 		}
 
 		//-------------------------------
@@ -252,6 +267,14 @@ void opcontrol() {
 
 		pros::delay(20);                               // Run for 20 ms then update
 	}
-}
 
+	if(!FUNCTION_AS_PREDICTED) {
+		left_motors.move(0);
+		right_motors.move(0);
+		motorIntake.move(0);
+		motorpush.move(0);
+		wing.move(0);
+		pros::lcd::print(2, "Error code: %d", ERROR_CODE); // Print the error code to the LCD for debugging purposes
+	}
+}
 
