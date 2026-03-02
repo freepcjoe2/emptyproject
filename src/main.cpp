@@ -66,7 +66,8 @@ struct PID{
 void initialize() {
 	pros::lcd::initialize();
 	pros::lcd::set_text(0, "Version: 1.0.0");
-	pros::lcd::set_text(1, "Display during race:67");
+	pros::lcd::set_text(1, "THIS IS A TEST MESSAGE");
+	pros::lcd::set_text(2, "中文测试");
 
 }
 
@@ -101,7 +102,7 @@ void competition_initialize() {}
  */
 void autonomous() {
 
-	pros::MotorGroup left_motors({-3, 11, -12});
+	pros::MotorGroup left_motors({-3, 11, -14});
 	pros::MotorGroup right_motors({15, -16, 17});
 	pros::Rotation forwardOdom(4);
 
@@ -118,7 +119,6 @@ void autonomous() {
 		
 		left_motors.move((int)out);
 		right_motors.move((int)out);
-
 		
 		pros::lcd::print(2, "Err: %.1f cur: %.0f", drivePid.lastError, current);
 		pros::lcd::print(3, "out: %.0f", out);
@@ -153,7 +153,7 @@ void opcontrol() {
 	// -------------------------------
 	// DRIVE MOTOR GROUPS
 	// -------------------------------
-	pros::MotorGroup left_motors({-3, 11, -12});//left drive motors
+	pros::MotorGroup left_motors({-3, 11, -14});//left drive motors
 	pros::MotorGroup right_motors({15,-16, 17});//right drive motors
 	pros::MotorGroup drivetrain({3, -11, 12, 15, -16, 17});//is this meanful?
 	// -------------------------------
@@ -162,6 +162,7 @@ void opcontrol() {
 	pros::Motor motorIntake(18);// Not installed yet
 	pros::Motor motorpush(20);// Arm/push motor
 	pros::Motor wing(14);// Wing for expansion
+	pros::Motor intake(19); // Intake motor
 	// -------------------------------
 	// ODOMETRY SENSORS
 	// -------------------------------
@@ -179,7 +180,7 @@ void opcontrol() {
 		int right_move_control = master.get_analog(ANALOG_RIGHT_Y);  // Gets the turn left/right from right joystick
 
 		left_motors.move(Left_move_control);                      // Sets left motor voltage
-		right_motors.move(right_move_control*0.8);                     // Sets right motor voltage
+		right_motors.move(right_move_control);                     // Sets right motor voltage
 
 		
 		// -------------------------------
@@ -198,7 +199,13 @@ void opcontrol() {
 			motorpush.move(0); // Stops the arm if neither button is pressed
 		}
 
-
+		if(pros::E_CONTROLLER_DIGITAL_A) { // Checks if A is pressed for moving the intake forward
+			intake.move(127); // Moves the intake forward at full speed
+		} else if (pros::E_CONTROLLER_DIGITAL_B) { // Checks if B is pressed for moving the intake in reverse
+			intake.move(-127); // Moves the intake in reverse at full speed
+		} else {
+			intake.move(0); // Stops the intake if neither button is pressed
+		}
 
 		//-------------------------------
 		// WING CONTROL
@@ -216,8 +223,9 @@ void opcontrol() {
 		
 
 		
-		pros::lcd::print(2, "Left: %d Right: %d ",Left_move_control, right_move_control);// Prints the joystick values to the LCD for debugging purposes
-		pros::lcd::print(3, "Wing Angle: %d", wing_angle); // Prints the current angle of the wing to the LCD for debugging purposes
+		pros::lcd::print(3, "Left: %d Right: %d ",Left_move_control, right_move_control);// Prints the joystick values to the LCD for debugging purposes
+		pros::lcd::print(4, "Wing Angle: %d", wing_angle); // Prints the current angle of the wing to the LCD for debugging purposes
+		pros::lcd::print(5, "Speed Left Motors: %d\n Speed Right Motors: %d", left_motors.get_actual_velocity(), right_motors.get_actual_velocity()); // Prints the current speed of the motors to the LCD for debugging purposes
 
 
 
