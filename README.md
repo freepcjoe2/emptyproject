@@ -3,8 +3,12 @@
 rebuild of [OrbweaversProsCodeLatest-2](https://github.com/Lorentzsam/OrbweaversProsCodeLatest-2)
 
 ## Is This Working
-- YESSSSSS
-- Finally it can run
+- New updates-controller "unconnected"
+- The controler do connected to the brain but the robot won't active to any actions
+- still figuring out how to fix that
+
+
+
 ## To do:
 - [x] Make this file fancy :)
 - [x] Upload code
@@ -42,7 +46,8 @@ rebuild of [OrbweaversProsCodeLatest-2](https://github.com/Lorentzsam/Orbweavers
 
 ## Debugging
 In main.cpp
-- [ ] Nothing need to debug
+- added a bool variable called FUNCTION_AS_PREDICTED, and exit code.
+- press button A to check if the controller is binded to the partner controller.
 ## Compiling
 - fuck microsoft
 - It nuked my compile toolchain

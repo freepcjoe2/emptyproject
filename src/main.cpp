@@ -28,6 +28,7 @@ bool FUNCTION_AS_PREDICTED = true; // For testing weak function linking
 int ERROR_CODE = 0; // For testing weak function linking
 //CODE FOR TESTING WEAK FUNCTION LINKING
 //ERROR_CODE = 1; // Controller not connected
+//ERROR_CODE = 2; // Controller connected to partner
 struct PID{
 	double Kp, Ki, Kd;
 	double integral = 0;
@@ -60,9 +61,7 @@ struct PID{
 
 	void reset() { integral = 0; lastError = 0; started = false; }
 };
-//sam can you explain how it works 
-//I want to apply it to the wing and arm
-
+//The PID struct is still testing
 
 /**
  * Runs initialization code. This occurs as soon as the program is started.
@@ -73,9 +72,9 @@ struct PID{
 
 void initialize() {
 	pros::lcd::initialize();
-	pros::lcd::set_text(0, "Version: 1.0.0");
+	pros::lcd::set_text(0, "Version: 0.2.0");
 	pros::lcd::set_text(1, "THIS IS A TEST MESSAGE");
-	pros::lcd::set_text(2, "中文测试");
+	pros::lcd::set_text(2, "Error code: 0");
 
 }
 
@@ -167,18 +166,7 @@ void autonomous() {
  */
 void opcontrol() {
 	pros::Controller master(pros::E_CONTROLLER_MASTER);
-	if(!master.is_connected()) {
-		pros::Controller master(pros::E_CONTROLLER_PARTNER);
-		if(!master.is_connected()) {
-			pros::lcd::print(2, "No controller connected");
-			FUNCTION_AS_PREDICTED = false; // For testing weak function linking	
-			ERROR_CODE = 1; // Controller not connected
-
-	} else {
-		pros::lcd::print(2, "Controller connected to partner port");
-	}}else {
-		pros::lcd::print(2, "Controller connected to master port");
-	}
+	pros::Controller partner(pros::E_CONTROLLER_PARTNER);
 	// -------------------------------
 	// DRIVE MOTOR GROUPS
 	// -------------------------------
@@ -202,6 +190,15 @@ void opcontrol() {
 
 	while (FUNCTION_AS_PREDICTED) {
 
+
+		// -------------------------------
+		// CONTROLLER DEBUGGING
+		// -------------------------------
+		bool partner_pushed = partner.get_digital(pros::E_CONTROLLER_DIGITAL_A); // Checks if the A button on the partner controller is pressed for debugging purposes
+		if (partner_pushed) {
+			FUNCTION_AS_PREDICTED = false; // Set the flag to false to stop the loop and end the program for debugging purposes
+			ERROR_CODE = 1; // Set the error code to 1 for controller not connected for debugging purposes
+		}
 		// -------------------------------
 		// DRIVE CONTROL
 		// -------------------------------
@@ -277,4 +274,10 @@ void opcontrol() {
 		pros::lcd::print(2, "Error code: %d", ERROR_CODE); // Print the error code to the LCD for debugging purposes
 	}
 }
+
+//As you see the code is already rebuilded
+//Why? because the original code cannot connect the controller
+//So we get to this step. The code is only been avalible for about 4 days.
+//The next step? Making it completely autonomous.
+//HELP ME
 
