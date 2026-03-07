@@ -16,15 +16,7 @@ rebuild of [OrbweaversProsCodeLatest-2](https://github.com/Lorentzsam/Orbweavers
     - [x] computer #2
     - [x] computer #3
 - [x] Fix Driving
-    - [x] Motors are good
-    - [X] Code can't ruuun
-    - [X] Is controller connected and can output joystick status
-    - [X] Initialization fail?
-    - [X] The screen fuctions
-    - [X] More problems
-    - [x] rebuild
 - [ ] Add the new motors for orb intaking
-    - Wait They have not installed it
 - [ ] Controler adjust
     - [ ] Button reset
     - [ ] add a swich to the wing(PID also useful)
@@ -32,7 +24,6 @@ rebuild of [OrbweaversProsCodeLatest-2](https://github.com/Lorentzsam/Orbweavers
     - [x] At least it can move.
     - [ ] PID function
         - [x] Basic PID function
-        - [ ] Self-fix
     - [ ] timed run routine
     - [ ] Geometric position get
 - [ ] (for debugging) Output some data on the screen
@@ -41,6 +32,7 @@ rebuild of [OrbweaversProsCodeLatest-2](https://github.com/Lorentzsam/Orbweavers
     - [ ] more!
 - [ ] To make auton run useable:
     1. [ ] Get data from the motor
+        - [ ] Display that
     2. [ ] Use the data to write the code
     3. [ ] Make specific routes for the car
 

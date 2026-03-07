@@ -7,6 +7,19 @@
 #include <cstdio>
 #include <vector>
 #include "pros/link.hpp"
+
+//tuning should based on #define-ed values
+#define leftMotorCode {-3, -12, 13}
+#define rightMotorCode {15, -16, 17}
+#define motorIntakeCode 18
+#define motorpushCode 20
+#define wingCode 14
+#define forwardOdomCode 4
+#define imuCode 6
+#define rightMotorOffset 0.81
+
+int timeMainWhile = 0; // For testing weak function linking
+
 /**
  * A callback function for LLEMU's center button.
  *
@@ -75,7 +88,7 @@ void initialize() {
 	pros::lcd::set_text(0, "Version: 0.2.0");
 	pros::lcd::set_text(1, "THIS IS A TEST MESSAGE");
 	pros::lcd::set_text(2, "Error code: 0");
-
+	
 }
 
 /**
@@ -170,26 +183,27 @@ void opcontrol() {
 	// -------------------------------
 	// DRIVE MOTOR GROUPS
 	// -------------------------------
-	pros::MotorGroup left_motors({-3, 11, -14});//left drive motors
-	pros::MotorGroup right_motors({15,-16, 17});//right drive motors
+	pros::MotorGroup left_motors(leftMotorCode);//left drive motors
+	pros::MotorGroup right_motors(rightMotorCode);//right drive motors
 	pros::MotorGroup drivetrain({3, -11, 12, 15, -16, 17});//is this meanful?
 	// -------------------------------
 	// MECHANISM MOTORS
 	// -------------------------------
-	pros::Motor motorIntake(18);// Not installed yet
-	pros::Motor motorpush(20);// Arm/push motor
-	pros::Motor wing(14);// Wing for expansion
-	pros::Motor intake(19); // Intake motor
+	pros::Motor motorIntake(motorIntakeCode);// Not installed yet
+	pros::Motor motorpush(motorpushCode);// Arm/push motor
+	pros::Motor wing(wingCode);// Wing for expansion
+	//pros::Motor intake(19); // Intake motor
 	// -------------------------------
 	// ODOMETRY SENSORS
 	// -------------------------------
-	pros::Rotation forwardOdom(4);   // tracking wheel
-	pros::Imu imu(6);                // IMU
+	pros::Rotation forwardOdom(forwardOdomCode);   // tracking wheel
+	pros::Imu imu(imuCode);                // IMU
 
 	//copy the initialization to where u use the motor or group
 
 	while (FUNCTION_AS_PREDICTED) {
 
+		
 
 		// -------------------------------
 		// CONTROLLER DEBUGGING
@@ -209,7 +223,7 @@ void opcontrol() {
 		if (std::abs(right_move_control) < DEAD_BAND) right_move_control = 0;
 
 		left_motors.move(Left_move_control);                      // Sets left motor voltage
-		right_motors.move(right_move_control);                     // Sets right motor voltage
+		right_motors.move(right_move_control*rightMotorOffset);                     // Sets right motor voltage
 
 		
 		// -------------------------------
@@ -254,8 +268,9 @@ void opcontrol() {
 		
 		pros::lcd::print(3, "Left: %d Right: %d ",Left_move_control, right_move_control);// Prints the joystick values to the LCD for debugging purposes
 		pros::lcd::print(4, "Wing Angle: %d", wing_angle); // Prints the current angle of the wing to the LCD for debugging purposes
-		pros::lcd::print(5, "Speed Left Motors: %d\n Speed Right Motors: %d", left_motors.get_actual_velocity(), right_motors.get_actual_velocity()); // Prints the current speed of the motors to the LCD for debugging purposes
-
+		//pros::lcd::print(5, "Speed Left Motors: %d\n Speed Right Motors: %d", left_motors.get_actual_velocity(), right_motors.get_actual_velocity()); // Prints the current speed of the motors to the LCD for debugging purposes
+		pros::lcd::print(5, "ticks: %d", timeMainWhile); // Prints the number of times the main while loop has run for debugging purposes
+		timeMainWhile++; // Increments the number of times the main while loop has run for
 
 
 
@@ -274,10 +289,3 @@ void opcontrol() {
 		pros::lcd::print(2, "Error code: %d", ERROR_CODE); // Print the error code to the LCD for debugging purposes
 	}
 }
-
-//As you see the code is already rebuilded
-//Why? because the original code cannot connect the controller
-//So we get to this step. The code is only been avalible for about 4 days.
-//The next step? Making it completely autonomous.
-//HELP ME
-
