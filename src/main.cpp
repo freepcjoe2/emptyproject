@@ -9,14 +9,15 @@
 #include "pros/link.hpp"
 
 //tuning should based on #define-ed values
-#define leftMotorCode {-3, -12, 13}
-#define rightMotorCode {15, -16, 17}
-#define motorIntakeCode 18
-#define motorpushCode 20
-#define wingCode 14
-#define forwardOdomCode 4
-#define imuCode 6
+#define leftMotorPort {-3, -12, 13}
+#define rightMotorPort {15, -16, 17}
+#define motorIntakePort 18
+#define motorpushPort 20
+#define wingPort 14
+#define forwardOdomPort 4
+#define imuPort 6
 #define rightMotorOffset 0.81
+#define pistonPort 'G'
 
 int timeMainWhile = 0; // For testing weak function linking
 
@@ -42,6 +43,10 @@ int ERROR_CODE = 0; // For testing weak function linking
 //CODE FOR TESTING WEAK FUNCTION LINKING
 //ERROR_CODE = 1; // Controller not connected
 //ERROR_CODE = 2; // Controller connected to partner
+
+void UpdateOdom(pros::Imu& imu) { 
+
+}
 struct PID{
 	double Kp, Ki, Kd;
 	double integral = 0;
@@ -183,22 +188,25 @@ void opcontrol() {
 	// -------------------------------
 	// DRIVE MOTOR GROUPS
 	// -------------------------------
-	pros::MotorGroup left_motors(leftMotorCode);//left drive motors
-	pros::MotorGroup right_motors(rightMotorCode);//right drive motors
-	pros::MotorGroup drivetrain({3, -11, 12, 15, -16, 17});//is this meanful?
+	pros::MotorGroup left_motors(leftMotorPort);//left drive motors
+	pros::MotorGroup right_motors(rightMotorPort);//right drive motors
+	//pros::MotorGroup drivetrain({3, -11, 12, 15, -16, 17});//is this meanful?
 	// -------------------------------
 	// MECHANISM MOTORS
 	// -------------------------------
-	pros::Motor motorIntake(motorIntakeCode);// Not installed yet
-	pros::Motor motorpush(motorpushCode);// Arm/push motor
-	pros::Motor wing(wingCode);// Wing for expansion
-	//pros::Motor intake(19); // Intake motor
+	pros::Motor motorIntake(motorIntakePort);// Intake motor
+	pros::Motor motorpush(motorpushPort);// Arm/push motor
+	pros::Motor wing(wingPort);// Wing for expansion
 	// -------------------------------
 	// ODOMETRY SENSORS
 	// -------------------------------
-	pros::Rotation forwardOdom(forwardOdomCode);   // tracking wheel
-	pros::Imu imu(imuCode);                // IMU
-
+	pros::Rotation forwardOdom(forwardOdomPort);   // tracking wheel
+	pros::Imu imu(imuPort);                // IMU
+	// -------------------------------
+	// lift
+	// -------------------------------
+	pros::adi::Pneumatics lift_piston(pistonPort, false, false);
+	bool tubeExtended = false;
 	//copy the initialization to where u use the motor or group
 
 	while (FUNCTION_AS_PREDICTED) {
@@ -231,8 +239,8 @@ void opcontrol() {
 		// -------------------------------
 
 		//renamed arm to push for better understanding, the name "push" is only used in this code and you can still calll it arm
-		bool push_up = master.get_digital(pros::E_CONTROLLER_DIGITAL_L1); // Gets whether L1 is pressed for pushing up the arm
-		bool push_down = master.get_digital(pros::E_CONTROLLER_DIGITAL_L2);
+		bool push_up = master.get_digital(pros::E_CONTROLLER_DIGITAL_X); // Gets whether L1 is pressed for pushing up the arm
+		bool push_down = master.get_digital(pros::E_CONTROLLER_DIGITAL_Y);
 
 		if (push_up) {
 			motorpush.move(-127); // Moves the arm up at full speed
@@ -242,9 +250,9 @@ void opcontrol() {
 			motorpush.move(0); // Stops the arm if neither button is pressed
 		}
 
-		if(master.get_digital(pros::E_CONTROLLER_DIGITAL_A)) { // Checks if A is pressed for moving the intake forward
+		if(master.get_digital(pros::E_CONTROLLER_DIGITAL_R1)) { // Checks if A is pressed for moving the intake forward
 			motorIntake.move(127); // Moves the intake forward at full speed
-		} else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_B)) { // Checks if B is pressed for moving the intake in reverse
+		} else if (master.get_digital(pros::E_CONTROLLER_DIGITAL_R2)) { // Checks if B is pressed for moving the intake in reverse
 			motorIntake.move(-127); // Moves the intake in reverse at full speed
 		} else {
 			motorIntake.move(0); // Stops the intake if neither button is pressed
@@ -253,15 +261,21 @@ void opcontrol() {
 		//-------------------------------
 		// WING CONTROL
 		//-------------------------------
-		if(master.get_digital(pros::E_CONTROLLER_DIGITAL_R2)) { // Checks if R2 is pressed for opening the wings
+		/*if(master.get_digital(pros::E_CONTROLLER_DIGITAL_A)) { // Checks if R2 is pressed for opening the wings
 			wing.move(48); // Moves the wing open at 3/8 speed
-		} else if(master.get_digital(pros::E_CONTROLLER_DIGITAL_R1)) { // Checks if R1 is pressed for closing the wings
+		} else if(master.get_digital(pros::E_CONTROLLER_DIGITAL_B )) { // Checks if R1 is pressed for closing the wings
 			wing.move(-48); // Moves the wing closed at 3/8 speed
 		}else {
 			wing.move(0); // Stops the wing if neither button is pressed
-		}
+		}*/
 		
 		int wing_angle = wing.get_position(); // Gets the current angle of the wing for debugging purposes
+
+		if (master.get_digital_new_press(
+                pros::E_CONTROLLER_DIGITAL_L1)) {
+            tubeExtended = !tubeExtended;
+        	lift_piston.set_value(tubeExtended);
+        }
 
 		
 
@@ -270,7 +284,8 @@ void opcontrol() {
 		pros::lcd::print(4, "Wing Angle: %d", wing_angle); // Prints the current angle of the wing to the LCD for debugging purposes
 		//pros::lcd::print(5, "Speed Left Motors: %d\n Speed Right Motors: %d", left_motors.get_actual_velocity(), right_motors.get_actual_velocity()); // Prints the current speed of the motors to the LCD for debugging purposes
 		pros::lcd::print(5, "ticks: %d", timeMainWhile); // Prints the number of times the main while loop has run for debugging purposes
-		timeMainWhile++; // Increments the number of times the main while loop has run for
+
+		timeMainWhile++; // Increments the number of times the main while loop has run for debugging purposes
 
 
 
@@ -286,6 +301,7 @@ void opcontrol() {
 		motorIntake.move(0);
 		motorpush.move(0);
 		wing.move(0);
+		lift_piston.set_value(false);
 		pros::lcd::print(2, "Error code: %d", ERROR_CODE); // Print the error code to the LCD for debugging purposes
 	}
 }
