@@ -22,7 +22,7 @@ void initializeIO() {
 #define leftMotorPort {-3, -12, 13}
 #define rightMotorPort {15, -16, 17}
 #define motorIntakePort 18
-#define motorpushPort 20
+#define motorArmPort 20
 #define wingPort 14
 #define forwardOdomPort 4
 #define imuPort 1
@@ -45,6 +45,21 @@ const double DIST_PER_DEG =
 // PROS Rotation 返回 centidegrees（1/100 度），需转换为度
 const double CENTIDEG_TO_DEG = 1.0 / 100.0;
 
+// -------------------------------
+// ARM CONTROL
+// -------------------------------
+#define ARM_UP_DURATION   25
+#define ARM_KEEP_DURATION 10
+#define ARM_DOWN_DURATION 25
+enum ArmState {
+    UP,
+    KEEP,
+    DOWN,
+    IDLE
+};
+
+ArmState armState = IDLE;
+int armCounter = 0;
 
 
 
@@ -62,7 +77,7 @@ pros::MotorGroup right_motors(rightMotorPort);//right drive motors
 // MECHANISM MOTORS
 // -------------------------------
 pros::Motor motorIntake(motorIntakePort);// Intake motor
-pros::Motor motorpush(motorpushPort);// Arm/push motor
+pros::Motor motorArm(motorArmPort);// Arm/arm motor
 pros::Motor wing(wingPort);// Wing for expansion
 // -------------------------------
 // ODOMETRY SENSORS
@@ -112,9 +127,7 @@ void driveDistance(double inches) {
     double prevError = inches;
     double integral = 0.0;
     while (true) {
-        updateOdometry();
-
-        if (fabs(error) < 0.5) break;
+		updateOdometry(forwardOdom, imu);	
         pros::delay(20);
     }
  
@@ -130,8 +143,8 @@ void turnToAngle(double targetDeg) {
     double prevError = targetDeg;
     double integral = 0.0;
     while (true) {
+        updateOdometry(forwardOdom, imu);
 
-        if (fabs(error) < 1.0) break;
         pros::delay(20);
     }
 
@@ -300,18 +313,70 @@ void opcontrol() {
 		// -------------------------------
 		// ARM/PUSH CONTROL
 		// -------------------------------
-
-		//renamed arm to push for better understanding, the name "push" is only used in this code and you can still calll it arm
+		/*//renamed arm to push for better understanding, the name "push" is only used in this code and you can still calll it arm
 		bool push_up = master.get_digital(pros::E_CONTROLLER_DIGITAL_X); // Gets whether L1 is pressed for pushing up the arm
 		bool push_down = master.get_digital(pros::E_CONTROLLER_DIGITAL_Y);
 
 		if (push_up) {
-			motorpush.move(-127); // Moves the arm up at full speed
+			motorArm.move(-127); // Moves the arm up at full speed
 		} else if (push_down) {
-			motorpush.move(64); // Moves the arm down at half speed
+			motorArm.move(64); // Moves the arm down at half speed
 		} else {
-			motorpush.move(0); // Stops the arm if neither button is pressed
-		}
+			motorArm.move(0); // Stops the arm if neither button is pressed
+		}*/
+		
+// -------------------------------
+        // ARM AUTO TRIGGER
+        // -------------------------------
+        if (master.get_digital_new_press(
+                pros::E_CONTROLLER_DIGITAL_UP)) {
+            armState = UP;
+            armCounter = 0;
+        }
+
+        // -------------------------------
+        // ARM CONTROL
+        // -------------------------------
+        armCounter++;
+
+        switch (armState) {
+            case UP:
+                motorArm.move(-127);
+                if (armCounter > ARM_UP_DURATION) {
+                    armState = KEEP;
+                    armCounter = 0;
+                }
+                break;
+
+            case KEEP:
+                motorArm.move(-15);
+                if (armCounter > ARM_KEEP_DURATION) {
+                    armState = DOWN;
+                    armCounter = 0;
+                }
+                break;
+
+            case DOWN:
+                motorArm.move(64);
+                if (armCounter > ARM_DOWN_DURATION) {
+                    armState = IDLE;
+                    armCounter = 0;
+                }
+                break;
+
+            case IDLE:
+                if (master.get_digital(
+                        pros::E_CONTROLLER_DIGITAL_X))
+                    motorArm.move(-127);
+                else if (master.get_digital(
+                             pros::E_CONTROLLER_DIGITAL_Y) ||
+                         master.get_digital(
+                             pros::E_CONTROLLER_DIGITAL_DOWN))
+                    motorArm.move(64);
+                else
+                    motorArm.move(0);
+                break;
+        }
 
 		if(master.get_digital(pros::E_CONTROLLER_DIGITAL_R1)) { // Checks if A is pressed for moving the intake forward
 			motorIntake.move(127); // Moves the intake forward at full speed
@@ -324,13 +389,13 @@ void opcontrol() {
 		//-------------------------------r
 		// WING CONTROL
 		//-------------------------------
-		/*if(master.get_digital(pros::E_CONTROLLER_DIGITAL_A)) { // Checks if R2 is pressed for opening the wings
+		if(master.get_digital(pros::E_CONTROLLER_DIGITAL_A)) { // Checks if R2 is pressed for opening the wings
 			wing.move(48); // Moves the wing open at 3/8 speed
 		} else if(master.get_digital(pros::E_CONTROLLER_DIGITAL_B )) { // Checks if R1 is pressed for closing the wings
 			wing.move(-48); // Moves the wing closed at 3/8 speed
 		}else {
 			wing.move(0); // Stops the wing if neither button is pressed
-		}*/
+		}
 		
 		int wing_angle = wing.get_position(); // Gets the current angle of the wing for debugging purposes
 
@@ -370,7 +435,7 @@ void opcontrol() {
 		left_motors.move(0);
 		right_motors.move(0);
 		motorIntake.move(0);
-		motorpush.move(0);
+		motorArm.move(0);
 		wing.move(0);
 		lift_piston.set_value(false);
 		pros::lcd::print(2, "Error code: %d", ERROR_CODE); // Print the error code to the LCD for debugging purposes
