@@ -1,3 +1,7 @@
+//BEFORE CODING
+//display every step on the lcd for debugging purposes
+//use the pros::lcd::print function to print the current step of the code
+//If it didn't work, try this will help you debug your code and find out where the problem is
 #include "main.h"
 #include "liblvgl/llemu.h"
 #include "pros/screen.hpp"
@@ -7,11 +11,12 @@
 #include <cstdio>
 #include <vector>
 #include "pros/link.hpp"
-
-void watchdogInit ( ) {}
+/*No this is not working
+void watchdogInit () {}
 void initializeIO() {
   watchdogInit();
-}
+}*/
+
 //everything should be tuned be HERE
 //tuning should based on #define-ed values
 #define leftMotorPort {-3, -12, 13}
@@ -20,7 +25,7 @@ void initializeIO() {
 #define motorpushPort 20
 #define wingPort 14
 #define forwardOdomPort 4
-#define imuPort 6
+#define imuPort 1
 #define rightMotorOffset 0.81
 #define pistonPort 'G'
 #define PI 3.141592653589793
@@ -78,21 +83,62 @@ int ERROR_CODE = 0; // For testing weak function linking
 // -------------------------------
 // ODOMETRY UPDATE
 // -------------------------------
-void updateOdometry(	pros::Rotation forwardOdom, pros::Imu imu) {
-
+void updateOdometry(pros::Rotation forwardOdom, pros::Imu imu) {
+	pros::lcd::print(5, "Updating odometry step 1"); // For debugging purposes
     double currDeg = forwardOdom.get_position() * CENTIDEG_TO_DEG;
+	pros::lcd::print(5, "Updating odometry step 2"); // For debugging purposes
     double dDeg = currDeg - prevDeg;
+	pros::lcd::print(5, "Updating odometry step 3"); // For debugging purposes
     prevDeg = currDeg;
-
+	pros::lcd::print(5, "Updating odometry step 4"); // For debugging purposes
     double dInches = dDeg * DIST_PER_DEG;
-
+	pros::lcd::print(5, "Updating odometry step 5"); // For debugging purposes
     robotHeadingDeg = imu.get_rotation();
+	pros::lcd::print(5, "Updating odometry step 6"); // For debugging purposes
     double headingRad = robotHeadingDeg * (PI / 180.0);
-
+	pros::lcd::print(5, "Updating odometry step 7"); // For debugging purposes
     robotX += dInches * cos(headingRad);
+	pros::lcd::print(5, "Updating odometry step 8"); // For debugging purposes
     robotY += dInches * sin(headingRad);
+	pros::lcd::print(5, "Updating odometry ends"); // For debugging purposes
 }
 
+// -------------------------------
+// DRIVE STRAIGHT (PID + IMU HOLD)
+// -------------------------------
+
+void driveDistance(double inches) {
+    forwardOdom.reset_position();
+    double prevError = inches;
+    double integral = 0.0;
+    while (true) {
+        updateOdometry();
+
+        if (fabs(error) < 0.5) break;
+        pros::delay(20);
+    }
+ 
+    left_motors.move(0);
+    right_motors.move(0);
+    pros::lcd::set_text(0, "Drv OK");
+}
+
+// -------------------------------
+// TURN TO ANGLE (PID)
+// -------------------------------
+void turnToAngle(double targetDeg) {
+    double prevError = targetDeg;
+    double integral = 0.0;
+    while (true) {
+
+        if (fabs(error) < 1.0) break;
+        pros::delay(20);
+    }
+
+    left_motors.move(0);
+    right_motors.move(0);
+    pros::lcd::set_text(0, "Turn OK");
+}
 
 struct PID{
 	double Kp, Ki, Kd;
@@ -137,7 +183,7 @@ struct PID{
 
 void initialize() {
 	pros::lcd::initialize();
-	pros::lcd::set_text(0, "Version: 0.2.0");
+	pros::lcd::set_text(0, "Version: 0.3.0");
 	pros::lcd::set_text(1, "THIS IS A TEST MESSAGE");
 	pros::lcd::set_text(2, "Error code: 0");
 }
@@ -275,7 +321,7 @@ void opcontrol() {
 			motorIntake.move(0); // Stops the intake if neither button is pressed
 		}
 
-		//-------------------------------
+		//-------------------------------r
 		// WING CONTROL
 		//-------------------------------
 		/*if(master.get_digital(pros::E_CONTROLLER_DIGITAL_A)) { // Checks if R2 is pressed for opening the wings
@@ -296,17 +342,24 @@ void opcontrol() {
 
 		
 
-		
+		/*
 		pros::lcd::print(3, "Left: %d Right: %d ",Left_move_control, right_move_control);// Prints the joystick values to the LCD for debugging purposes
 		pros::lcd::print(4, "Wing Angle: %d", wing_angle); // Prints the current angle of the wing to the LCD for debugging purposes
 		//pros::lcd::print(5, "Speed Left Motors: %d\n Speed Right Motors: %d", left_motors.get_actual_velocity(), right_motors.get_actual_velocity()); // Prints the current speed of the motors to the LCD for debugging purposes
-		pros::lcd::print(5, "ticks: %d", tickMainWhile); // Prints the number of times the main while loop has run for debugging purposes
+		*/
+		
+		pros::lcd::print(3, "ticks: %d", tickMainWhile); // Prints the number of times the main while loop has run for debugging purposes
+		
 
 		tickMainWhile++; // Increments the number of times the main while loop has run for debugging purposes
 
 
 		updateOdometry(forwardOdom, imu); // Updates the odometry values for debugging purposes
-		pros::lcd::print(6, "X: %.1f Y: %.1f Heading: %.1f", robotX, robotY, robotHeadingDeg); // Prints the current odometry values to the LCD for debugging purposes
+		//DONT UPDATE ODOMETRY IN THE MAIN LOOP UNLESS YOU KNOW WHAT YOU ARE DOING, IT CAN CAUSE SIGNIFICANT PERFORMANCE ISSUES
+		int intRobotX = (int)robotX; // Converts the robot's X position to an integer for debugging purposes
+		int intRobotY = (int)robotY; // Converts the robot's Y position to an integer for debugging purposes
+		int intRobotHeading = (int)robotHeadingDeg; // Converts the robot's heading to an integer for debugging purposes
+		pros::lcd::print(4, "X: %d Y: %d Heading: %d", intRobotX, intRobotY, intRobotHeading); // Prints the current odometry values to the LCD for debugging purposes
 
 
 
