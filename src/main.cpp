@@ -23,7 +23,7 @@ void initializeIO() {
 
 //everything should be tuned be HERE
 //tuning should based on #define-ed values
-#define leftMotorPort {3, 12, -13}
+#define leftMotorPort {-3, -12, 13}
 #define rightMotorPort {15, -16, 17}
 #define motorIntakePort 18
 #define motorArmPort 20
@@ -57,9 +57,9 @@ const double CENTIDEG_TO_DEG = 1.0 / 100.0;
 // -------------------------------
 // ARM CONTROL
 // -------------------------------
-#define ARM_UP_DURATION   25
-#define ARM_KEEP_DURATION 10
-#define ARM_DOWN_DURATION 25
+#define ARM_UP_DURATION   10
+#define ARM_KEEP_DURATION 4
+#define ARM_DOWN_DURATION 10
 enum ArmState {
     UP,
     KEEP,
@@ -495,10 +495,11 @@ pros::lcd::print(7, "before odometry"); // Prints the current step of the code t
 		int intRobotY = (int)robotY; // Converts the robot's Y position to an integer for debugging purposes
 		int intRobotHeading = (int)robotHeadingDeg; // Converts the robot's heading to an integer for debugging purposes
 		pros::lcd::print(4, "X: %d Y: %d Heading: %d", intRobotX, intRobotY, intRobotHeading); // Prints the current odometry values to the LCD for debugging purposes
-		pros::lcd::print(6, "Forward Odom: %d", forwardOdom.get_position()); // Prints the current position of the forward odometry tracking wheel to the LCD for debugging purposes
+		
+pros::lcd::print(7, "end of loop"); // Prints the current step of the code to the LCD for debugging purposes:lcd::print(6, "Forward Odom: %d", forwardOdom.get_position()); // Prints the current position of the forward odometry tracking wheel to the LCD for debugging purposes
 
 pros::lcd::print(7, "end of loop"); // Prints the current step of the code to the LCD for debugging purposes
-		pros::delay(20);                               // Run for 20 ms then update
+		pros::delay(50);                               // Run for 20 ms then update
 		pros::lcd::print(7, "delay done"); // Prints the current step of the code to the LCD for debugging purposes
 	}
 	
