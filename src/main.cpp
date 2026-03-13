@@ -28,14 +28,14 @@ void initializeIO() {
 #define motorIntakePort 18
 #define motorArmPort 20
 #define wingPort 14
-#define forwardOdomPort 4
+#define forwardOdomPort 2 
 #define imuPort 1
 #define rightMotorOffset 0.81
 #define pistonPort 'G'
 #define PI 3.141592653589793
 #define TRACK_WHEEL_DIAMETER_IN 2.75
 //requred to change the angle of the wings for expansion
-#define wingAutoCtrl false  // to false to disable automatic wing control and control the wings manually with the controller
+bool wingAutoCtrl = false;  // to false to disable automatic wing control and control the wings manually with the controller
 #define wingStateOneAngle 90
 #define wingStateTwoAngle 0
 #define wingStateThreeAngle 45
@@ -77,7 +77,7 @@ int armCounter = 0;
 
 
 
-int tickMainWhile = 0; // For testing weak function linking 1tick=20ms
+int tickMainWhile = 0; // For testing weak function linking    1 tick=20ms
 
 pros::Controller master(pros::E_CONTROLLER_MASTER);
 pros::Controller partner(pros::E_CONTROLLER_PARTNER);
@@ -113,14 +113,15 @@ int ERROR_CODE = 0; // For testing weak function linking
 // ODOMETRY UPDATE
 // -------------------------------
 void updateOdometry(pros::Rotation forwardOdom, pros::Imu imu) {
-    double currDeg = forwardOdom.get_position() * CENTIDEG_TO_DEG;
-    double dDeg = currDeg - prevDeg;
-    prevDeg = currDeg;
-    double dInches = dDeg * DIST_PER_DEG;
-    robotHeadingDeg = imu.get_rotation();
-    double headingRad = robotHeadingDeg * (PI / 180.0);
-    robotX += dInches * cos(headingRad);
-    robotY += dInches * sin(headingRad);
+    double currDeg = forwardOdom.get_position() * CENTIDEG_TO_DEG;	pros::lcd::print(7,"step1");
+    double dDeg = currDeg - prevDeg;	pros::lcd::print(7,"step2");
+    prevDeg = currDeg;	pros::lcd::print(7,"step3");
+    double dInches = dDeg * DIST_PER_DEG;	pros::lcd::print(7,"step4");	
+    robotHeadingDeg = imu.get_rotation();	pros::lcd::print(7,"step5");
+    double headingRad = robotHeadingDeg * (PI / 180.0);	pros::lcd::print(7,"step6");
+    robotX += dInches * cos(headingRad);pros::lcd::print(7,"step7");
+    robotY += dInches * sin(headingRad);pros::lcd::print(7,"step8");
+    robotY += dInches * sin(headingRad);pros::lcd::print(7,"step8");
 }
 // -------------------------------
 // DRIVE STRAIGHT
@@ -142,7 +143,7 @@ void driveDistanceForward(double inches) {
 // TURN TO ANGLE 
 // -------------------------------
 void turnToAngle(double targetDeg) {
-	imu.reset_rotation();
+	imu.reset(); // Resets the IMU's rotation to 0
     while (true) {
         updateOdometry(forwardOdom, imu);
         pros::delay(20);
@@ -234,7 +235,7 @@ void autonomous() {
 
 	forwardOdom.reset_position();
 
-	
+	/*
 	const double target = 500.0;  
 	const uint32_t MAX_AUTO_TIME_MS = 5000;
 	const uint32_t start_time = pros::millis();
@@ -266,9 +267,19 @@ void autonomous() {
 			pros::lcd::print(4, "Timeout");
 			break;
 		}
+		
 
 		pros::delay(20);
-	}
+	}*/
+
+
+	left_motors.move(-64);
+	right_motors.move(-64);	
+	pros::delay(4000);
+
+
+	left_motors.move(0);
+	right_motors.move(0);
 }
 
 /**
@@ -288,7 +299,8 @@ void opcontrol() {
 	bool tubeExtended = false;
 	//copy the initialization to where u use the motor or group
 
-	while (FUNCTION_AS_PREDICTED) {
+	while (FUNCTION_AS_PREDICTED) {	
+		pros::lcd::print(7, "beginning of loop"); // Prints the current step of the code to the LCD for debugging purposes
 		// -------------------------------
 		// CONTROLLER DEBUGGING
 		// -------------------------------
@@ -296,6 +308,7 @@ void opcontrol() {
 		if (partner_pushed) {
 			FUNCTION_AS_PREDICTED = false; // Set the flag to false to stop the loop and end the program for debugging purposes
 			ERROR_CODE = 1; // Set the error code to 1 for controller not connected for debugging purposes
+		pros::lcd::print(7, "controller debugging"); // Prints whether the A button on the partner controller is pressed to the LCD for debugging purposes
 		}
 		// -------------------------------
 		// DRIVE CONTROL
@@ -309,7 +322,7 @@ void opcontrol() {
 		left_motors.move(Left_move_control);                      // Sets left motor voltage
 		right_motors.move(right_move_control*rightMotorOffset);                     // Sets right motor voltage
 
-		
+		pros::lcd::print(7, "drive control"); // Prints the current step of the code to the LCD for debugging purposes
 		// -------------------------------
 		// ARM/PUSH CONTROL
 		// -------------------------------
@@ -333,7 +346,7 @@ void opcontrol() {
             armState = UP;
             armCounter = 0;
         }
-
+		pros::lcd::print(7, "arm auto trigger"); // Prints the current step of the code to the LCD for debugging purposes
         // -------------------------------
         // ARM CONTROL
         // -------------------------------
@@ -377,6 +390,11 @@ void opcontrol() {
                     motorArm.move(0);
                 break;
         }
+
+pros::lcd::print(7, "arm control"); // Prints the current step of the code to the LCD for debugging purposes
+		//-------------------------------
+		// WING AUTO CONTROL
+		//-------------------------------
 		if(wingAutoCtrl){
 		if (master.get_digital_new_press(
                 pros::E_CONTROLLER_DIGITAL_LEFT)) {
@@ -417,6 +435,16 @@ void opcontrol() {
 			}
 			break;
 		}
+		}else if(wingAutoCtrl == false) {
+			// Manual wing control code will go here
+			if(master.get_digital(pros::E_CONTROLLER_DIGITAL_LEFT)) { // Checks if R2 is pressed for opening the wings
+				wing.move(48); // Moves the wing open at 3/8 speed
+			} else if(master.get_digital(pros::E_CONTROLLER_DIGITAL_RIGHT)) { // Checks if R1 is pressed for closing the wings
+				wing.move(-48); // Moves the wing closed at 3/8 speed
+			}else {
+				wing.move(0); // Stops the wing if neither button is pressed
+			}
+		
 		}
 		pros::lcd::print(5, "Wing Angle: %d", wing.get_position()); // Prints the current angle of the wing to the LCD for debugging purposes
 
@@ -427,14 +455,16 @@ void opcontrol() {
 		} else {
 			motorIntake.move(0); // Stops the intake if neither button is pressed
 		}
-
+pros::lcd::print(7, "intake control"); // Prints the current step of the code to the LCD for debugging purposes
 		//-------------------------------r
 		// WING CONTROL
 		//-------------------------------
 		if(master.get_digital(pros::E_CONTROLLER_DIGITAL_A)) { // Checks if R2 is pressed for opening the wings
 			wing.move(48); // Moves the wing open at 3/8 speed
+			wingAutoCtrl = false; // Disables automatic wing control if it was enabled
 		} else if(master.get_digital(pros::E_CONTROLLER_DIGITAL_B )) { // Checks if R1 is pressed for closing the wings
 			wing.move(-48); // Moves the wing closed at 3/8 speed
+			wingAutoCtrl = false; // Disables automatic wing control if it was enabled
 		}else {
 			wing.move(0); // Stops the wing if neither button is pressed
 		}
@@ -446,7 +476,7 @@ void opcontrol() {
             tubeExtended = !tubeExtended;
         	lift_piston.set_value(tubeExtended);
         }
-
+pros::lcd::print(7, "lift control"); // Prints the current step of the code to the LCD for debugging purposes
 		
 
 		/*
@@ -459,18 +489,19 @@ void opcontrol() {
 
 		tickMainWhile++; // Increments the number of times the main while loop has run for debugging purposes
 
-
+pros::lcd::print(7, "before odometry"); // Prints the current step of the code to the LCD for debugging purposes
 		updateOdometry(forwardOdom, imu); // Updates the odometry values
 		int intRobotX = (int)robotX; // Converts the robot's X position to an integer for debugging purposes
 		int intRobotY = (int)robotY; // Converts the robot's Y position to an integer for debugging purposes
 		int intRobotHeading = (int)robotHeadingDeg; // Converts the robot's heading to an integer for debugging purposes
 		pros::lcd::print(4, "X: %d Y: %d Heading: %d", intRobotX, intRobotY, intRobotHeading); // Prints the current odometry values to the LCD for debugging purposes
+		pros::lcd::print(6, "Forward Odom: %d", forwardOdom.get_position()); // Prints the current position of the forward odometry tracking wheel to the LCD for debugging purposes
 
-
-
+pros::lcd::print(7, "end of loop"); // Prints the current step of the code to the LCD for debugging purposes
 		pros::delay(20);                               // Run for 20 ms then update
+		pros::lcd::print(7, "delay done"); // Prints the current step of the code to the LCD for debugging purposes
 	}
-
+	
 	if(!FUNCTION_AS_PREDICTED) {
 		left_motors.move(0);
 		right_motors.move(0);
@@ -480,4 +511,5 @@ void opcontrol() {
 		lift_piston.set_value(false);
 		pros::lcd::print(2, "Error code: %d", ERROR_CODE); // Print the error code to the LCD for debugging purposes
 	}
+	pros::lcd::print(7, "end of opcontrol"); // Prints the current step of the code to the LCD for debugging purposes
 }
