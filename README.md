@@ -2,11 +2,6 @@
 
 rebuild of [OrbweaversProsCodeLatest-2](https://github.com/Lorentzsam/OrbweaversProsCodeLatest-2)
 
-## Is This Working
-- New updates-controller "unconnected"
-- The controler do connected to the brain but the robot won't active to any actions
-- still figuring out how to fix that
-
 
 ## To do:
 - [x] Make this file fancy :)
@@ -15,20 +10,19 @@ rebuild of [OrbweaversProsCodeLatest-2](https://github.com/Lorentzsam/Orbweavers
     - [x] computer #2
     - [x] computer #3
 - [x] Fix Driving
-- [ ] Add the new motors for orb intaking
+- [x] Add the new motors for orb intaking
 - [ ] Controler adjust
-    - [ ] Button reset
-    - [ ] add a swich to the wing(PID also useful)
+    - [x] Button reset
+    - [ ] add a swich to the wing
 - [ ] Try moving on its own
     - [x] At least it can move.
     - [ ] PID function
-        - [x] Basic PID function
+        - [ ] Basic PID function
     - [ ] timed run routine
     - [ ] Geometric position get
 - [ ] (for debugging) Output some data on the screen
     - [ ] position
     - [x] controller
-    - [ ] more!
 - [ ] To make auton run useable:
     1. [ ] Get data from the motor
         - [ ] Display that
