@@ -47,7 +47,30 @@ double robotY = 0.0;
 double robotHeadingDeg = 0.0;
 double prevDeg = 0.0;
 
+// >>> YOU TUNE THESE <<<
+double DRIVE_kP = 6.0;
+double DRIVE_kI = 0.0;
+double DRIVE_kD = 0.4;
 
+double TURN_kP = 2.2;
+double TURN_kI = 0.0;
+double TURN_kD = 0.15;
+// Integral cap to prevent windup
+const double DRIVE_INTEGRAL_CAP = 30.0;
+const double TURN_INTEGRAL_CAP = 15.0;
+
+// -------------------------------
+// PID Speed Curve Visualization (V5 Brain Screen)
+// -------------------------------
+const int GRAPH_WIDTH    = 400;
+const int GRAPH_HEIGHT   = 200;
+const int GRAPH_LEFT     = 20;
+const int GRAPH_TOP      = 15;
+const int GRAPH_CENTER_Y = GRAPH_TOP + GRAPH_HEIGHT / 2;  // 115
+
+// Screen dimensions
+const int SCREEN_W = 480;
+const int SCREEN_H = 240;
 const double DIST_PER_DEG =
     (TRACK_WHEEL_DIAMETER_IN * PI) / 360.0;
 
@@ -112,7 +135,7 @@ int ERROR_CODE = 0; // For testing weak function linking
 // -------------------------------
 // ODOMETRY UPDATE
 // -------------------------------
-void updateOdometry(pros::Rotation forwardOdom, pros::Imu imu) {
+void updateOdometry() {
     double currDeg = forwardOdom.get_position() * CENTIDEG_TO_DEG;	pros::lcd::print(7,"step1");
     double dDeg = currDeg - prevDeg;	pros::lcd::print(7,"step2");
     prevDeg = currDeg;	pros::lcd::print(7,"step3");
@@ -124,28 +147,107 @@ void updateOdometry(pros::Rotation forwardOdom, pros::Imu imu) {
     robotY += dInches * sin(headingRad);pros::lcd::print(7,"step8");
 }
 // -------------------------------
-// DRIVE STRAIGHT
+// DRIVE STRAIGHT (PID + IMU HOLD)
+// FIX: added imu.tare() so heading correction is relative to start of each move
+// FIX: removed unused prevX, prevY, iter variables
 // -------------------------------
 
-void driveDistanceForward(double inches) {
+// The important part of the bot
+// debug in progress
+void driveDistance(double inches) {
     forwardOdom.reset_position();
+    imu.tare();                      // <<< FIX: zero heading at start of each drive
+    double prevError = inches;
+    double integral  = 0.0;
+
+    // Error 曲线：清屏（黑底）、画零线（目标），波形收敛即 PID 良好
+    // Error curve: Clear the screen (black background), draw a zero line (target), 
+    // and the waveform converges, indicating a good PID.
+    pros::screen::set_eraser(pros::Color::black);
+    pros::screen::erase();
+    pros::screen::set_pen(pros::Color::gray);
+    pros::screen::draw_line(0, GRAPH_CENTER_Y, SCREEN_W, GRAPH_CENTER_Y);
+    pros::screen::set_pen(pros::Color::green);
+
     while (true) {
-		updateOdometry(forwardOdom, imu);	
+        updateOdometry();
+
+        double traveled =
+            forwardOdom.get_position() * CENTIDEG_TO_DEG * DIST_PER_DEG;
+        double error      = inches - traveled;
+        double derivative = error - prevError;
+        prevError         = error;
+
+        integral += error;
+        if      (integral >  DRIVE_INTEGRAL_CAP) integral =  DRIVE_INTEGRAL_CAP;
+        else if (integral < -DRIVE_INTEGRAL_CAP) integral = -DRIVE_INTEGRAL_CAP;
+
+        double power =
+            DRIVE_kP * error + DRIVE_kI * integral + DRIVE_kD * derivative;
+        if      (power >  100.0) power =  100.0;
+        else if (power < -100.0) power = -100.0;
+
+        double headingError = imu.get_rotation();   // now relative to start of this move
+        double turn         = headingError * 1.2;   // >>> YOU TUNE this multiplier
+
+        left_motors.move(power - turn);
+        right_motors.move(power + turn);
+
+        // 用 3 行 LCD 显示 error 调试（用 %d 避免嵌入式 %f 不显示）
+        // Display error debugging using a 3-line LCD 
+        // (use %d to avoid embedded %f not being displayed)
+        pros::lcd::print(0, "Drv E:%d in:%d", (int)error, (int)traveled);
+        pros::lcd::print(1, "Pwr:%d",          (int)power);
+
+        if (fabs(error) < 0.5) break;
         pros::delay(20);
     }
- 
+
     left_motors.move(0);
     right_motors.move(0);
     pros::lcd::set_text(0, "Drv OK");
 }
 
 // -------------------------------
-// TURN TO ANGLE 
+// TURN TO ANGLE (PID)
+// FIX: removed unused prevX, prevY, iter variables
 // -------------------------------
 void turnToAngle(double targetDeg) {
-	imu.reset(); // Resets the IMU's rotation to 0
+    double prevError = targetDeg;
+    double integral  = 0.0;
+
+    // Error 曲线：清屏（黑底）、零线 + 波形
+    // Error curve: Clear screen (black background), zero line + waveform
+    pros::screen::set_eraser(pros::Color::black);
+    pros::screen::erase();
+    pros::screen::set_pen(pros::Color::gray);
+    pros::screen::draw_line(0, GRAPH_CENTER_Y, SCREEN_W, GRAPH_CENTER_Y);
+    pros::screen::set_pen(pros::Color::blue);
+
     while (true) {
-        updateOdometry(forwardOdom, imu);
+        double curr       = imu.get_rotation();
+        double error      = targetDeg - curr;
+        double derivative = error - prevError;
+        prevError         = error;
+
+        integral += error;
+        if      (integral >  TURN_INTEGRAL_CAP) integral =  TURN_INTEGRAL_CAP;
+        else if (integral < -TURN_INTEGRAL_CAP) integral = -TURN_INTEGRAL_CAP;
+
+        double power =
+            TURN_kP * error + TURN_kI * integral + TURN_kD * derivative;
+        if      (power >  90.0) power =  90.0;
+        else if (power < -90.0) power = -90.0;
+
+        left_motors.move(-power);
+        right_motors.move(power);
+
+        // LCD 显示 error 调试（用 %d 避免 %f 不显示）
+        // LCD displays error debugging (use %d to avoid %f not being displayed)
+        pros::lcd::print(0, "Turn E:%d deg", (int)error);
+        pros::lcd::print(1, "cur:%d Pwr:%d", (int)curr, (int)power);
+
+        if (fabs(error) < 1.0) break;
         pros::delay(20);
     }
 
@@ -153,6 +255,7 @@ void turnToAngle(double targetDeg) {
     right_motors.move(0);
     pros::lcd::set_text(0, "Turn OK");
 }
+
 
 struct PID{
 	double Kp, Ki, Kd;
@@ -272,18 +375,74 @@ void autonomous() {
 		pros::delay(20);
 	}*/
 
+    // --- SENSOR CHECK (2 seconds before any movement) ---
+    for (int i = 0; i < 100; i++) {
+        pros::lcd::print(0, "IMU: %d deg",     (int)imu.get_rotation());
+        pros::lcd::print(1, "Odom: %d",        (int)forwardOdom.get_position());
+        pros::lcd::print(2, "Calibrating: %d", (int)imu.is_calibrating());
+        pros::delay(20);
+    }
+    // --- END SENSOR CHECK ---
 
-	left_motors.move(-64);
-	right_motors.move(-64);	
-	pros::delay(4000);
+    // STEP 1: Drive forward
+    driveDistance(12);              // >>> TUNE: change to your actual first distance (inches)
+    pros::delay(200);
 
+    // STEP 2: Intake
+    motorIntake.move(-127);         // intake forward — check direction is correct
+    pros::delay(800);               // >>> TUNE: ms to run intake
+    motorIntake.move(0);
+    pros::delay(200);
 
-	left_motors.move(0);
-	right_motors.move(0);
+    // STEP 3: Turn
+    turnToAngle(90);                // >>> TUNE: positive=right, negative=left
+    pros::delay(200);
+
+    // STEP 4: Drive forward again
+    driveDistance(24);              // >>> TUNE: change to your actual second distance (inches)
+    pros::delay(200);
+
+    // STEP 5: Outtake
+    motorIntake.move(127);          // reverse intake = outtake
+    pros::delay(800);               // >>> TUNE: ms to run outtake
+    motorIntake.move(0);
+}
+
+/**
+ * Runs the operator control code. This function will be started in its own task));
+        pros::lcd::print(2, "Calibrating: %d", (int)imu.is_calibrating());
+        pros::delay(20);
+    }
+    // --- END SENSOR CHECK ---
+
+    // STEP 1: Drive forward
+    driveDistance(12);              // >>> TUNE: change to your actual first distance (inches)
+    pros::delay(200);
+
+    // STEP 2: Intake
+    motorIntake.move(-127);         // intake forward — check direction is correct
+    pros::delay(800);               // >>> TUNE: ms to run intake
+    motorIntake.move(0);
+    pros::delay(200);
+
+    // STEP 3: Turn
+    turnToAngle(90);                // >>> TUNE: positive=right, negative=left
+    pros::delay(200);
+
+    // STEP 4: Drive forward again
+    driveDistance(24);              // >>> TUNE: change to your actual second distance (inches)
+    pros::delay(200);
+
+    // STEP 5: Outtake
+    motorIntake.move(127);          // reverse intake = outtake
+    pros::delay(800);               // >>> TUNE: ms to run outtake
+    motorIntake.move(0);
 }
 
 /**
  * Runs the operator control code. This function will be started in its own task
+ * with the default priority and stack size whenever the robot is enabled via
+ * the Field Management System or the VEX Competition Switch in the operator
  * with the default priority and stack size whenever the robot is enabled via
  * the Field Management System or the VEX Competition Switch in the operator
  * control mode.
@@ -459,10 +618,10 @@ pros::lcd::print(7, "intake control"); // Prints the current step of the code to
 		//-------------------------------r
 		// WING CONTROL
 		//-------------------------------
-		if(master.get_digital(pros::E_CONTROLLER_DIGITAL_A)) { // Checks if R2 is pressed for opening the wings
+		if(master.get_digital(pros::E_CONTROLLER_DIGITAL_LEFT)) { // Checks if R2 is pressed for opening the wings
 			wing.move(48); // Moves the wing open at 3/8 speed
 			wingAutoCtrl = false; // Disables automatic wing control if it was enabled
-		} else if(master.get_digital(pros::E_CONTROLLER_DIGITAL_B )) { // Checks if R1 is pressed for closing the wings
+		} else if(master.get_digital(pros::E_CONTROLLER_DIGITAL_RIGHT)) { // Checks if R1 is pressed for closing the wings
 			wing.move(-48); // Moves the wing closed at 3/8 speed
 			wingAutoCtrl = false; // Disables automatic wing control if it was enabled
 		}else {
@@ -490,7 +649,7 @@ pros::lcd::print(7, "lift control"); // Prints the current step of the code to t
 		tickMainWhile++; // Increments the number of times the main while loop has run for debugging purposes
 
 pros::lcd::print(7, "before odometry"); // Prints the current step of the code to the LCD for debugging purposes
-		updateOdometry(forwardOdom, imu); // Updates the odometry values
+		updateOdometry(); // Updates the odometry values
 		int intRobotX = (int)robotX; // Converts the robot's X position to an integer for debugging purposes
 		int intRobotY = (int)robotY; // Converts the robot's Y position to an integer for debugging purposes
 		int intRobotHeading = (int)robotHeadingDeg; // Converts the robot's heading to an integer for debugging purposes
